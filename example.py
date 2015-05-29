@@ -11,7 +11,7 @@ insight = InsightBatchService('http://127.0.0.1:4001/')
 account_key_sources = [  # test local seed, test recovery key, cryptocorp sandbox api
 	MasterKey.from_seed_hex('54b426b3e676649e8bfd66a2943f56fe74da2d2c0934d78db3a87dae44ed8d159e29ea93f6f33550a767c228786e75d020753575733bcf336943f7fa4ecfd37f'),
 	ElectrumMasterKey.from_key('xpub69mdgvyDG2wbxwFTDhb6ghQ5Dgsdk1zGhxHPAq3C76XBbZCa4UJZZj3Ew7hLGCGvuxy4hseoWbj9KNoHzN1jZUovLMKP3rHThyWHZxKu5cA'),
-    OracleAccountPubkeys('https://s.digitaloracle.co'),
+	OracleAccountPubkeys('https://s.digitaloracle.co'),
 ]
 
 

@@ -26,7 +26,7 @@ class Batch(object):
 	def to_file(self, file_path):
 		data = {
 			'header': {'master_xpubs': self.master_xpubs, 'merkle_root': self.merkle_root, 'checksum': self.checksum, 'total_out': self.total_out},
-		    'txs': [batchable_tx.as_dict() for batchable_tx in self.batchable_txs]
+			'txs': [batchable_tx.as_dict() for batchable_tx in self.batchable_txs]
 		}
 		with open(file_path, 'w') as fp:
 			print "save %s" % file_path
@@ -74,9 +74,9 @@ class BatchableTx(Tx):
 	def as_dict(self):
 		return {  # todo - make it more similar to multisigcore.hierarchy.AccountTx
 			'bytes': self.as_hex(),
-		    'input_paths': self.input_paths,
-		    'output_paths': self.output_paths,
-		    'input_txs': [tx.as_hex() for tx in self.input_txs]
+			'input_paths': self.input_paths,
+			'output_paths': self.output_paths,
+			'input_txs': [tx.as_hex() for tx in self.input_txs]
 		}
 
 	def validate(self):
