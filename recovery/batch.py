@@ -105,7 +105,7 @@ class BatchableTx(Tx):
 			'input_paths': self.input_paths,
 			'output_paths': self.output_paths,
 			'input_txs': [tx.as_hex() for tx in self.input_txs],
-		    #'unspents': [unspent.as_text() for unspent in self.unspents],
+			#'unspents': [unspent.as_text() for unspent in self.unspents],
 		}
 
 	def validate(self):

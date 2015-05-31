@@ -14,8 +14,8 @@ class Branch(object):
 
 		ACCOUNT_PATH_TEMPLATES = {
 			self.bitoasis_v1_account: '0H/%d',
-		    self.bip32_account: '%dH',
-		    self.bip44_account: '%dH/0/0',  # todo - simplification, purpose and coin_type always 0
+			self.bip32_account: '%dH',
+			self.bip44_account: '%dH/0/0',  # todo - simplification, purpose and coin_type always 0
 		}
 		self.account_path_template = ACCOUNT_PATH_TEMPLATES[account_template]
 
