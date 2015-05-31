@@ -8,9 +8,16 @@ from multisigcore.hierarchy import MultisigAccount, AccountKey
 
 class Branch(object):
 
-	def __init__(self, account_key_sources, account_template):
-		self.account = lambda account_index: account_template(account_key_sources, account_index)
+	def __init__(self, account_key_sources, account_template, provider):
+		self.account = lambda account_index: account_template(account_key_sources, account_index, provider)
 		self.master_key_names = [self.__key_source_string(key_source) for key_source in account_key_sources]
+
+		ACCOUNT_PATH_TEMPLATES = {
+			self.bitoasis_v1_account: '0H/%d',
+		    self.bip32_account: '%dH',
+		    self.bip44_account: '%dH/0/0',  # todo - simplification, purpose and coin_type always 0
+		}
+		self.account_path_template = ACCOUNT_PATH_TEMPLATES[account_template]
 
 	def __key_source_string(self, key_source):
 		try:
@@ -23,7 +30,7 @@ class Branch(object):
 		return '_'.join(key_source_id[-10:] for key_source_id in sorted(self.master_key_names))
 
 	@staticmethod
-	def bitoasis_v1_account(account_key_sources, account_index):
+	def bitoasis_v1_account(account_key_sources, account_index, provider):
 		def to_legacy(bip32key, is_backup_key=False):
 			return AccountKey(
 				netcode=bip32key._netcode, chain_code=bip32key.chain_code(), depth=bip32key.tree_depth(), parent_fingerprint=b'\0\0\0\0',
@@ -35,7 +42,10 @@ class Branch(object):
 		legacy_backup_account_key = to_legacy(account_key_sources[1].electrum_account(account_index), is_backup_key=True)
 		cryptocorp_key = account_key_sources[2].get(legacy_local_account_key)
 		account_keys = [legacy_local_account_key, legacy_backup_account_key, cryptocorp_key]
-		return MultisigAccount(account_keys, num_sigs=2, sort=False, complete=False)
+		account = MultisigAccount(account_keys, num_sigs=2, sort=False, complete=True)
+		account._provider = provider
+		account.set_lookahead(0)  # todo - add lookahead later
+		return account
 
 	"""
 	Following functions will not work from xPubs as multisig-core is currently using hardened accounts.
