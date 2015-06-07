@@ -15,7 +15,7 @@ def create_and_sign_example():  # 1: original branch, destination branch, recove
 		OracleAccountPubkeys('https://s.digitaloracle.co'),
 	]
 	destination_account_key_sources = original_account_key_sources  # todo - hack until we can create a new branch from scratch using CC API
-
+	print "expected  1/0/0",  '34q3omG9u42PEp3gXy2KZvXgYC7TKm4H6u'
 	original_branch = Branch(original_account_key_sources, Branch.bitoasis_v1_account, provider=insight)
 	destination_branch = Branch(destination_account_key_sources, Branch.bitoasis_v1_account, provider=insight)
 	cached_recovery = CachedRecovery(original_branch, destination_branch, provider=insight)

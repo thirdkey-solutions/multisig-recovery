@@ -12,12 +12,12 @@ class Branch(object):
 		self.account = lambda account_index: account_template(account_key_sources, account_index, provider)
 		self.master_key_names = [self.__key_source_string(key_source) for key_source in account_key_sources]
 
-		ACCOUNT_PATH_TEMPLATES = {
-			self.bitoasis_v1_account: '0H/%d',
-			self.bip32_account: '%dH',
+		templates = {
+			self.bip32_account: '%dH',  # todo - this will not work until we allow non-hardened account keys
 			self.bip44_account: '%dH/0/0',  # todo - simplification, purpose and coin_type always 0
+			self.bitoasis_v1_account: '0H/0/%d',
 		}
-		self.account_path_template = ACCOUNT_PATH_TEMPLATES[account_template]
+		self.backup_account_path_template = templates[account_template]
 
 	def __key_source_string(self, key_source):
 		try:

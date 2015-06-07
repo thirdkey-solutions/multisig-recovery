@@ -3,7 +3,8 @@ __author__ = 'Tom James Holub'
 from pycoin.tx import Tx, pay_to, Spendable
 import json
 import multisigcore
-
+import multisigcore.oracle
+import sys
 
 def full_leaf_path(account_path, leaf_path):
 	return '/%s/%s' % (account_path.strip('/'), leaf_path.strip('/'))
@@ -51,18 +52,20 @@ class Batch(object):
 
 	def sign(self, master_private_key):  # todo - test to see if this needs to be cached to FS when signing 100k txs
 		for batchable_tx in self.batchable_txs:
-			redeem_scripts = [pay_to.script_obj_from_script(txin.script) for txin in batchable_tx.txs_in]
 			keys = [master_private_key.subkey_for_path(path.strip('/')) for path in batchable_tx.input_paths]
-			print '[before sign]', batchable_tx.as_hex()
-			multisigcore.local_sign(batchable_tx, redeem_scripts, keys)  # #fixme - will not add signature
-			print '[after sign] ', batchable_tx.as_hex()
+			print '[first sign, loaded] %d %s %s' % (batchable_tx.bad_signature_count(), batchable_tx.id(), batchable_tx.as_hex())
+			multisigcore.local_sign(batchable_tx, batchable_tx.scripts, keys)
+			print '[second sign] %d %s %s' % (batchable_tx.bad_signature_count(), batchable_tx.id(), batchable_tx.as_hex())
 
 	def broadcast(self, provider):  # todo - broadcasting status will need to be cached to FS + checking blockchain until all txs pushed
 		for batchable_tx in self.batchable_txs:
 			try:
+				for i, tx_in in enumerate(batchable_tx.txs_in):
+					multisigcore.oracle.fix_input_script(tx_in, batchable_tx.scripts[i].script())
+				print '[after fix] %d %s %s' % (batchable_tx.bad_signature_count(), batchable_tx.id(), batchable_tx.as_hex())
 				provider.send_tx(batchable_tx)
 			except Exception, err:
-				print "tx", batchable_tx.id(), 'failed to propagete (%s)' % str(err)
+				sys.stderr.write("tx %s failed to propagate (%s)\n" %(batchable_tx.id(), str(err)))
 
 	def __repr__(self):
 		return "Batch(%s)" % str(self.merkle_root)
@@ -81,14 +84,15 @@ class BatchableTx(Tx):
 		batchable_tx.output_paths = data['output_paths']
 		batchable_tx.input_paths = data['input_paths']
 		batchable_tx.input_txs = [Tx.tx_from_hex(input_tx) for input_tx in data['input_txs']]
-		#batchable_tx.unspents = [Spendable.from_text(unspent_text) for unspent_text in data['unspents']]
+		batchable_tx.scripts = [pay_to.script_obj_from_script(script.decode('hex')) for script in data['scripts']]
 		return batchable_tx
 
 	@classmethod
-	def from_tx(cls, tx, output_paths, account_path, tx_db):
+	def from_tx(cls, tx, output_paths, scripts, backup_account_path, tx_db):
 		batchable_tx = cls(tx.version, tx.txs_in, tx.txs_out, tx.lock_time, tx.unspents)
-		batchable_tx.input_paths = [full_leaf_path(account_path, leaf_path) for leaf_path in tx.input_chain_paths()]
-		batchable_tx.output_paths = [full_leaf_path(account_path, leaf_path) for leaf_path in output_paths]
+		batchable_tx.input_paths = [full_leaf_path(backup_account_path, leaf_path) for leaf_path in tx.input_chain_paths()]
+		batchable_tx.output_paths = [full_leaf_path(backup_account_path, leaf_path) for leaf_path in output_paths]
+		batchable_tx.scripts = scripts
 		batchable_tx.input_txs = []
 		for input in tx.txs_in:
 			input_tx = tx_db.get(input.previous_hash)
@@ -105,7 +109,7 @@ class BatchableTx(Tx):
 			'input_paths': self.input_paths,
 			'output_paths': self.output_paths,
 			'input_txs': [tx.as_hex() for tx in self.input_txs],
-			#'unspents': [unspent.as_text() for unspent in self.unspents],
+		    'scripts': [script.script().encode('hex') for script in self.scripts],
 		}
 
 	def validate(self):

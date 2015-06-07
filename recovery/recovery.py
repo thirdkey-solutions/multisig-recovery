@@ -91,9 +91,11 @@ class CachedRecovery(object):
 			print "account", account_index, "balance is", balance, "- nothing to send"
 
 		if tx is not None:
-			account_path = self.original_branch.account_path_template % account_index
-			batchable_tx = BatchableTx.from_tx(tx, output_paths=['0/0'], account_path=account_path, tx_db=self.tx_db)
+			account_path = self.original_branch.backup_account_path_template % account_index
+			scripts = [original_account.script_for_path(tx_in.path) for tx_in in tx.txs_in]
+			batchable_tx = BatchableTx.from_tx(tx, output_paths=['0/0'], scripts=scripts, backup_account_path=account_path, tx_db=self.tx_db)
 			original_account.sign(batchable_tx)
+			print '[first sign, saving] %d %s %s' % (batchable_tx.bad_signature_count(), batchable_tx.id(), batchable_tx.as_hex())
 			return batchable_tx
 
 	def create_and_sign_txs(self):
