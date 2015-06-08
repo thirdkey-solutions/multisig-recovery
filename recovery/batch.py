@@ -53,17 +53,18 @@ class Batch(object):
 	def sign(self, master_private_key):  # todo - test to see if this needs to be cached to FS when signing 100k txs
 		for batchable_tx in self.batchable_txs:
 			keys = [master_private_key.subkey_for_path(path.strip('/')) for path in batchable_tx.input_paths]
-			print '[first sign, loaded] %d %s %s' % (batchable_tx.bad_signature_count(), batchable_tx.id(), batchable_tx.as_hex())
+			#print '[first sign, loaded] %d %s %s' % (batchable_tx.bad_signature_count(), batchable_tx.id(), batchable_tx.as_hex())
 			multisigcore.local_sign(batchable_tx, batchable_tx.scripts, keys)
-			print '[second sign] %d %s %s' % (batchable_tx.bad_signature_count(), batchable_tx.id(), batchable_tx.as_hex())
+			#print '[second sign] %d %s %s' % (batchable_tx.bad_signature_count(), batchable_tx.id(), batchable_tx.as_hex())
 
 	def broadcast(self, provider):  # todo - broadcasting status will need to be cached to FS + checking blockchain until all txs pushed
 		for batchable_tx in self.batchable_txs:
 			try:
 				for i, tx_in in enumerate(batchable_tx.txs_in):
 					multisigcore.oracle.fix_input_script(tx_in, batchable_tx.scripts[i].script())
-				print '[after fix] %d %s %s' % (batchable_tx.bad_signature_count(), batchable_tx.id(), batchable_tx.as_hex())
+				#print '[after fix] %d %s %s' % (batchable_tx.bad_signature_count(), batchable_tx.id(), batchable_tx.as_hex())
 				provider.send_tx(batchable_tx)
+				print 'broadcasted %s %s' % (batchable_tx.id(), batchable_tx.as_hex())
 			except Exception, err:
 				sys.stderr.write("tx %s failed to propagate (%s)\n" %(batchable_tx.id(), str(err)))
 

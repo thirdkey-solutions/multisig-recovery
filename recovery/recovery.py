@@ -11,13 +11,6 @@ from pycoin.services.tx_db import TxDb
 class CachedRecovery(object):
 	"""
 	Create a batch of transactions from master branch keys. Will cache each step and pick up where left off.
-
-	Needs to be universal, and work with any of:
-	 - [ BO seed|m-xPub , TKS xPub , CC API ]
-	 - [ BO seed|m-xPub , TKS xPub , CC xPubs export from BO db ]
-	 - per-account xPub exports of all three (convenient for CC)
-	or any other general use.
-
 	Very early prototype.
 	"""
 
@@ -32,9 +25,6 @@ class CachedRecovery(object):
 		# self.leaf_gap = leaf_gap
 		# self.first_account = first_account
 
-#	def _full_leaf_path(self, account_path_template, account_index, for_change, n):
-#		return '/%s/%d/%d' % (account_path, int(for_change), n)
-
 	def add_known_account(self, account_index, external_leafs=None, internal_leafs=None):
 		"""
 		Adding known account indexes speeds up recovery.
@@ -44,24 +34,29 @@ class CachedRecovery(object):
 			batch.add_known_account(1, external_leafs=[0,1,2,3,4], internal_leafs=[0,1,2])
 			batch.add_known_account(1, external_leafs={0: "receiving addr 0", 1: "receiving addr 1", ...}, internal_leafs={0: "change addr 0", ...})
 		"""
-		self.known_accounts[account_index] = {  # each branch stored as {leaf_i: None or receiving address, ...} or None
-			'0': {v: None for v in external_leafs} if type(external_leafs) == list else external_leafs,
-			'1': {v: None for v in internal_leafs} if type(internal_leafs) == list else internal_leafs,
+		external_leafs = external_leafs or {}
+		internal_leafs = internal_leafs or {}
+		self.known_accounts[int(account_index)] = {  # each branch stored as {leaf_i: None or receiving address, ...} or None
+			0: {int(v): None for v in external_leafs} if type(external_leafs) == list else {int(k): v for k, v in external_leafs.items()},
+			1: {int(v): None for v in internal_leafs} if type(internal_leafs) == list else {int(k): v for k, v in external_leafs.items()},
 		}
 
-	def recover_original_accounts(self):
+	def recover_origin_accounts(self):
 		"""will pick up where left off due to caching"""
 		for account_index, leafs in self.known_accounts.items():
 			if not self.cache.exists(Cache.ORIGINAL_ACCOUNT, account_index):
 				try:
 					account = self.original_branch.account(account_index)
 					for for_change, leaf_n_array in leafs.items():
-						for leaf_n in leaf_n_array:
-							address = account.address(leaf_n, change=int(for_change))  # this will get cached in the account object
-							print "recovered", account_index, for_change, leaf_n, address
+						if leaf_n_array is None:
+							print "! account %d: no leafs specified, address lookahead not implemented yet" % account_index
+						else:
+							for leaf_n in leaf_n_array:
+								address = account.address(leaf_n, change=int(for_change))  # this will get cached in the account object
+								print "original %d/%d/%d %s" % (account_index, for_change, leaf_n, address)
 					self.cache.save(Cache.ORIGINAL_ACCOUNT, account_index, account)
 				except OracleUnknownKeychainException:
-					print "unknown acct", account_index
+					print "! account %d: unkown" % account_index
 					del self.known_accounts[account_index]  # todo - needs more sophisticated checks, eg bad connection, CC timeouts, etc
 
 	def recover_destination_accounts(self):
@@ -70,7 +65,7 @@ class CachedRecovery(object):
 			if not self.cache.exists(Cache.DESTINATION_ACCOUNT, account_index):
 				account = self.destination_branch.account(account_index)
 				address = account.address(0, change=False)  # this will get cached in the account object
-				print "destination", account_index, 0, 0, address
+				print "destination %d/%d/%d %s" % (account_index, 0, 0, address)
 				self.cache.save(Cache.DESTINATION_ACCOUNT, account_index, account)
 
 	def create_and_sign_tx(self, account_index):
@@ -88,14 +83,14 @@ class CachedRecovery(object):
 			except InsufficientBalanceException, err:
 				balance_less_fee -= TX_FEE_PER_THOUSAND_BYTES
 		else:
-			print "account", account_index, "balance is", balance, "- nothing to send"
+			print "account", account_index, "balance:", balance, ",nothing to send"
 
 		if tx is not None:
 			account_path = self.original_branch.backup_account_path_template % account_index
 			scripts = [original_account.script_for_path(tx_in.path) for tx_in in tx.txs_in]
 			batchable_tx = BatchableTx.from_tx(tx, output_paths=['0/0'], scripts=scripts, backup_account_path=account_path, tx_db=self.tx_db)
 			original_account.sign(batchable_tx)
-			print '[first sign, saving] %d %s %s' % (batchable_tx.bad_signature_count(), batchable_tx.id(), batchable_tx.as_hex())
+			#print '[first sign, saving] %d %s %s' % (batchable_tx.bad_signature_count(), batchable_tx.id(), batchable_tx.as_hex())
 			return batchable_tx
 
 	def create_and_sign_txs(self):

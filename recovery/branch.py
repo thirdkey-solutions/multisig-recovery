@@ -3,7 +3,9 @@ __author__ = 'Tom James Holub'
 from multisigcore.oracle import OracleUnknownKeychainException
 import uuid
 import requests
-from multisigcore.hierarchy import MultisigAccount, AccountKey
+from multisigcore.hierarchy import MultisigAccount, AccountKey, MasterKey, ElectrumMasterKey
+import json
+from pycoin.encoding import EncodingError
 
 
 class Branch(object):
@@ -38,8 +40,9 @@ class Branch(object):
 				secret_exponent=bip32key.secret_exponent() if bip32key.is_private() else None,
 				public_pair=bip32key.public_pair() if not bip32key.is_private() else None,
 			)
+
 		legacy_local_account_key = to_legacy(account_key_sources[0].electrum_account(account_index))
-		legacy_backup_account_key = to_legacy(account_key_sources[1].electrum_account(account_index), is_backup_key=True)
+		legacy_backup_account_key = to_legacy(ElectrumMasterKey.from_key(account_key_sources[1].hwif()).electrum_account(account_index), is_backup_key=True)
 		cryptocorp_key = account_key_sources[2].get(legacy_local_account_key)
 		account_keys = [legacy_local_account_key, legacy_backup_account_key, cryptocorp_key]
 		account = MultisigAccount(account_keys, num_sigs=2, sort=False, complete=True)
@@ -67,11 +70,38 @@ class Branch(object):
 
 class AccountPubkeys():
 
+	@staticmethod
+	def parse_string_to_account_key_source(string):
+
+		if '.json' in string:
+			return DictAccountPubkeys.from_file(string)
+
+		if 'https' in string:
+			return OracleAccountPubkeys(string)
+
+		try:
+			return MasterKey.from_seed_hex(string)
+		except (TypeError, EncodingError), err:
+			pass
+
+		try:
+			return MasterKey.from_key(string)
+		except (TypeError, EncodingError), err:
+			pass
+
+		raise ValueError('Unknown type for account key source: %s' % string)
+
 	def get(self, account_index):
 		raise NotImplementedError('Abstract class')
 
 
 class DictAccountPubkeys(AccountPubkeys):
+
+	@classmethod
+	def from_file(cls, path):
+		""" :param path: path to json file containing "{account_number1: xpub1, ...}"""
+		with open(path) as fp:
+			return cls(json.load(fp))
 
 	def __init__(self, pubkeys_by_account_indexes):
 		self.pubkeys = pubkeys_by_account_indexes
