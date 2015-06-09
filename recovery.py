@@ -104,7 +104,7 @@ def main():
 	parser.add_argument('--destination', metavar='MKs', help='Destination branch keys, comma separated (create)')
 	parser.add_argument('--accounts', metavar='FILE', help='Use list of known account indexes. (create)')
 	parser.add_argument('--insight', metavar='URL', help='Default: http://127.0.0.1:4001/ (create, broadcast)', default='http://127.0.0.1:4001/')
-	parser.add_argument('--template', metavar='TYPE', help='Default: bip32', default='bip32', choices=['bitoasis_v1', 'bip32', 'bip44', 'electrum'])
+	parser.add_argument('--template', metavar='TYPE', help='Default: bip32', default='bip32', choices=['bitoasis_v1', 'bip32', 'bip32_hardened'])
 	parser.add_argument('--seed', help='Signing hex seed (cosign)')
 	parser.epilog = EXAMPLES
 	args = parser.parse_args()
@@ -127,8 +127,6 @@ def main():
 		if args.command == 'create':
 			if args.accounts is None:
 				raise NotImplementedError('Account and address lookahead/gaps not implemented. Please use "--accounts samples/known-accounts.json"')
-			if args.template != 'bitoasis_v1':
-				raise NotImplementedError('Account template %s not implemented yet, use --template bitoasis_v1' % args.template)
 			if args.origin != args.destination and 'https' in args.destination:
 				raise NotImplementedError('Cannot create new CC Oracle accounts yet. Have destination equal to origin (for testing) or use non-oracle key sources for destination.')
 			create(args)

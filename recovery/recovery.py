@@ -2,7 +2,7 @@ __author__ = 'Tom James Holub'
 
 from batch import Batch, BatchableTx
 from cache import Cache
-from multisigcore.hierarchy import TX_FEE_PER_THOUSAND_BYTES, InsufficientBalanceException, MasterKey, ElectrumMasterKey
+from multisigcore.hierarchy import TX_FEE_PER_THOUSAND_BYTES, InsufficientBalanceException, MasterKey
 from multisigcore.oracle import OracleUnknownKeychainException
 from pycoin.services.tx_db import TxDb
 
