@@ -127,8 +127,6 @@ def main():
 		if args.command == 'create':
 			if args.accounts is None:
 				raise NotImplementedError('Account and address lookahead/gaps not implemented. Please use "--accounts samples/known-accounts.json"')
-			if args.origin != args.destination and 'https' in args.destination:
-				raise NotImplementedError('Cannot create new CC Oracle accounts yet. Have destination equal to origin (for testing) or use non-oracle key sources for destination.')
 			create(args)
 
 		elif args.command == 'cosign':
