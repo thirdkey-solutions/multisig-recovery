@@ -1,6 +1,9 @@
 
 PROTOTYPE - Branch migrations for multisig wallets
 
+Currently needs https://github.com/bit-oasis/multisig-core/tree/softened version of `multisig-core`
+
+ 
 ```bash
 
 	./recovery -h
