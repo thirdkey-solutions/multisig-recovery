@@ -1,12 +1,11 @@
 __author__ = 'Tom James Holub'
 
-from multisigcore.oracle import OracleUnknownKeychainException
+from multisigcore.oracle import OracleUnknownKeychainException, Oracle, PersonalInformation
 import uuid
 import requests
 from multisigcore.hierarchy import MultisigAccount, AccountKey, MasterKey
 import json
 from pycoin.encoding import EncodingError
-
 
 class Branch(object):
 
@@ -49,7 +48,7 @@ class Branch(object):
 
 		legacy_local_account_key = to_legacy(account_key_sources[0].electrum_account(account_index))
 		legacy_backup_account_key = to_legacy(account_key_sources[1].bip32_account(account_index, hardened=False), is_backup_key=True)
-		cryptocorp_key = account_key_sources[2].get(legacy_local_account_key)
+		cryptocorp_key = account_key_sources[2].get(account_index, [legacy_local_account_key, legacy_backup_account_key])
 		account_keys = [legacy_local_account_key, legacy_backup_account_key, cryptocorp_key]
 		account = MultisigAccount(account_keys, num_sigs=2, sort=False, complete=True)
 		account._provider = provider
@@ -65,19 +64,14 @@ class Branch(object):
 	@staticmethod
 	def _account_keys(account_key_sources, account_index, derive_account):
 		account_keys = []
-		local_account_key = None
 		for source in account_key_sources:
 			if isinstance(source, MasterKey):
-				account_key = derive_account(source, account_index)
-				account_keys.append(account_key)
-				if source.is_private() and local_account_key is None:
-					local_account_key = account_key
+				account_keys.append(derive_account(source, account_index))
 			elif isinstance(source, DictAccountPubkeys):
 				account_keys.append(source.get(account_index))
 			elif isinstance(source, OracleAccountPubkeys):
-				if local_account_key is None:
-					raise TypeError('Master private key must always come before Oracle in list of account key sources')
-				account_keys.append(source.get(local_account_key))
+				assert source == account_key_sources[-1]  # oracle has to be the last source
+				account_keys.append(source.get(account_index, account_keys))
 			else:
 				raise TypeError('Unknown account key source, can work with MasterKey or AccountPubkeys')
 		return account_keys
@@ -86,13 +80,13 @@ class Branch(object):
 class AccountPubkeys():
 
 	@staticmethod
-	def parse_string_to_account_key_source(string):
+	def parse_string_to_account_key_source(string, register_oracle_accounts_file=False):
 
 		if '.json' in string:
 			return DictAccountPubkeys.from_file(string)
 
 		if 'digitaloracle' in string:
-			return OracleAccountPubkeys(string)
+			return OracleAccountPubkeys(string, register_accounts_file=register_oracle_accounts_file)
 
 		try:
 			return MasterKey.from_seed_hex(string)
@@ -127,14 +121,29 @@ class DictAccountPubkeys(AccountPubkeys):
 
 class OracleAccountPubkeys(AccountPubkeys):
 
-	def __init__(self, base_cryptocorp_url):
-		self.base_url = base_cryptocorp_url.strip('/')
+	def __init__(self, base_cryptocorp_url, register_accounts_file=None):
+		print "register_accounts_file", register_accounts_file
+		self.base_url = base_cryptocorp_url.strip('/') + '/'
+		self.register_accounts_file = register_accounts_file
+		if register_accounts_file:
+			with open(register_accounts_file) as fp:
+				self.register = json.load(fp)
+		else:
+			self.register = None
 
-	def get(self, local_account_key):
-		account_uuid = str(uuid.uuid5(uuid.NAMESPACE_URL, str("urn:digitaloracle.co:%s" % local_account_key.hwif(as_private=False))))
-		account_url = self.base_url + '/keychains/' + account_uuid
+	def get(self, account_index, account_keys):  # todo - handle timeouts, bad connection
+		tmp_account = MultisigAccount(account_keys[:], complete=False)
+		tmp_oracle = Oracle(tmp_account, base_url=self.base_url, manager=self.register['manager'] if self.register is not None else None)
 		try:
-			remote_xpub = requests.get(account_url).json()['keys']['default'][0]
-			return AccountKey.from_hwif(remote_xpub)
-		except KeyError:  # todo - handle timeouts, bad connection
-			raise OracleUnknownKeychainException(account_url)
+			tmp_oracle.get()
+		except OracleUnknownKeychainException:
+			if self.register is None:
+				raise
+			else:
+				try:
+					personal_info_dict = self.register['personal_info'][str(account_index)]
+				except KeyError:
+					raise ValueError('Account index %d missing, could not register with CC. File: %s' % (account_index, self.register_accounts_file))
+				tmp_oracle.create(self.register['parameters'], PersonalInformation(**personal_info_dict))
+		assert len(tmp_account.keys) == len(account_keys) + 1  # asserting that we fetched a missing key from oracle
+		return tmp_account.keys[-1]  # return the oracle key (last one)

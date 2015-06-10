@@ -29,6 +29,8 @@ Sample files:
  - samples/known-accounts.json : Speed up recovery if you can export a list of created accounts from your DB. If not used,
         script will attempt to recover all accounts based on account and address gap limit. See the file for example
         formatting. Usage: --accounts samples/known-accounts.json
+ - samples/account-registrations.json : you will need to supply account personal information in this format to register
+        accounts on CryptoCorp for the new branch. Usage: --register samples/account-registrations.json
  """
 
 
@@ -45,9 +47,10 @@ def get_insight(url):
 	return insight
 
 
-def parse_key_sources(key_sources_string):
+def parse_key_sources(key_sources_string, register=None):
 	try:
-		return [AccountPubkeys.parse_string_to_account_key_source(string) for string in key_sources_string.split(',')]
+		strings = key_sources_string.split(',')
+		return [AccountPubkeys.parse_string_to_account_key_source(string, register_oracle_accounts_file=register) for string in strings]
 	except ValueError, err:
 		raise ScriptInputError(err.message)
 
@@ -60,8 +63,9 @@ def create(args):
 	insight = get_insight(args.insight)
 
 	# setup
-	origin_branch = Branch(parse_key_sources(args.origin), get_template(args.template), provider=insight)
-	destination_branch = Branch(parse_key_sources(args.destination), get_template(args.template), provider=insight)
+	account_template = get_template(args.template)
+	origin_branch = Branch(parse_key_sources(args.origin), account_template, provider=insight)
+	destination_branch = Branch(parse_key_sources(args.destination, args.register), account_template, provider=insight)
 	cached_recovery = CachedRecovery(origin_branch, destination_branch, provider=insight)
 
 	# adding known accounts
@@ -95,6 +99,17 @@ def broadcast(args):
 	batch.broadcast(provider=insight)
 
 
+def check_sources(args):
+	def check_cc_last(sources_str):
+		for source_str in sources_str.split(',')[:-1]:
+			if 'digitaloracle' in source_str:
+				raise ScriptInputError('CryptoCorp API always has to be the last account key source\nChange sources order in --origin or --destination')
+	if args.origin != args.destination and 'digitaloracle' in args.destination and not args.register:
+		raise ScriptInputError('CryptoCorp API in destination branch but missing --register\nUse --register samples/account-registrations.json')
+	check_cc_last(args.destination)
+	check_cc_last(args.origin)
+
+
 def main():
 	parser = argparse.ArgumentParser(description='BitOasis multisig branch recovery script', formatter_class=argparse.RawDescriptionHelpFormatter)
 	parser.add_argument('command', choices=['create', 'cosign', 'broadcast'])
@@ -104,8 +119,9 @@ def main():
 	parser.add_argument('--destination', metavar='MKs', help='Destination branch keys, comma separated (create)')
 	parser.add_argument('--accounts', metavar='FILE', help='Use list of known account indexes. (create)')
 	parser.add_argument('--insight', metavar='URL', help='Default: http://127.0.0.1:4001/ (create, broadcast)', default='http://127.0.0.1:4001/')
-	parser.add_argument('--template', metavar='TYPE', help='Default: bip32', default='bip32', choices=['bitoasis_v1', 'bip32', 'bip32_hardened'])
+	parser.add_argument('--template', metavar='TYPE', help='Default: bip32 (create)', default='bip32', choices=['bitoasis_v1', 'bip32', 'bip32_hardened'])
 	parser.add_argument('--seed', help='Signing hex seed (cosign)')
+	parser.add_argument('--register', metavar='FILE', help='New accouts data file for CC API (create)')
 	parser.epilog = EXAMPLES
 	args = parser.parse_args()
 
@@ -125,17 +141,17 @@ def main():
 				raise ScriptInputError('%s: missing argument: --%s\n' % (args.command, argument))
 
 		if args.command == 'create':
+			check_sources(args)
 			if args.accounts is None:
-				raise NotImplementedError('Account and address lookahead/gaps not implemented. Please use "--accounts samples/known-accounts.json"')
+				raise NotImplementedError('Account and address lookahead/gaps not implemented.\nFix: "--accounts samples/known-accounts.json"')
 			create(args)
-
 		elif args.command == 'cosign':
 			cosign(args)
 		elif args.command == 'broadcast':
 			broadcast(args)
 
 	except (ScriptInputError, NotImplementedError), err:
-		sys.stderr.write('%s: %s\n' % (err.__class__.__name__, err.message))
+		sys.stderr.write('%s:\n%s\n' % (err.__class__.__name__, err.message))
 
 
 if __name__ == '__main__':
