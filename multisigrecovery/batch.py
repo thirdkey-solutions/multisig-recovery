@@ -1,5 +1,3 @@
-__author__ = 'Tom James Holub'
-
 from pycoin.tx import Tx, pay_to, Spendable
 import json
 import multisigcore

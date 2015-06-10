@@ -1,5 +1,3 @@
-__author__ = 'Tom James Holub'
-
 import os.path
 #import json
 import pickle

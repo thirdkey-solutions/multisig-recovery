@@ -1,5 +1,3 @@
-__author__ = 'Tom James Holub'
-
 from batch import Batch, BatchableTx
 from cache import Cache
 from multisigcore.hierarchy import TX_FEE_PER_THOUSAND_BYTES, InsufficientBalanceException, MasterKey

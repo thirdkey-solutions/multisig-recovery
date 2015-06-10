@@ -1,5 +1,3 @@
-__author__ = 'Tom James Holub'
-
 from multisigcore.oracle import OracleUnknownKeychainException, Oracle, PersonalInformation
 import uuid
 import requests

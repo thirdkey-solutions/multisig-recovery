@@ -1,6 +1,3 @@
-__author__ = 'Tom James Holub'
-
-
 from multisigcore.providers.insight import InsightBatchService
 from multisigcore.hierarchy import MasterKey
 from .branch import Branch, AccountPubkeys
