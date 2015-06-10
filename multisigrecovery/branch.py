@@ -122,7 +122,6 @@ class DictAccountPubkeys(AccountPubkeys):
 class OracleAccountPubkeys(AccountPubkeys):
 
 	def __init__(self, base_cryptocorp_url, register_accounts_file=None):
-		print "register_accounts_file", register_accounts_file
 		self.base_url = base_cryptocorp_url.strip('/') + '/'
 		self.register_accounts_file = register_accounts_file
 		if register_accounts_file:
