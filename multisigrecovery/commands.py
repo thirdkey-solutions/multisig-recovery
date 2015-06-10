@@ -48,13 +48,20 @@ def __check_source_strings(args):
 	check_cc_last(args.origin)
 
 
+def __add_known_accounts(cached_recovery, known_accounts_file):
+	with open(known_accounts_file) as fp:
+		known_accounts = json.load(fp)
+	for account_number, indexes in known_accounts.items():
+		if indexes is not None and 'external_leafs' in indexes and 'internal_leafs' in indexes:
+			cached_recovery.add_known_account(account_number, external_leafs=indexes['external_leafs'], internal_leafs=indexes['internal_leafs'])
+		else:
+			cached_recovery.add_known_account(account_number)
+
+
 ############  create, cosign, broadcast methods below  ###########################################
 
 
 def create(args):
-	if args.accounts is None:
-		raise NotImplementedError('Account and address lookahead/gaps not implemented.\nFix: "--accounts samples/known-accounts.json"')
-
 	insight = __get_insight(args.insight)
 	__check_source_strings(args)
 
@@ -63,22 +70,16 @@ def create(args):
 	origin_branch = Branch(__parse_key_sources(args.origin), account_template, provider=insight)
 	destination_branch = Branch(__parse_key_sources(args.destination, args.register), account_template, provider=insight)
 	cached_recovery = CachedRecovery(origin_branch, destination_branch, provider=insight)
-
-	# adding known accounts
-	with open(args.accounts) as fp:
-		known_accounts = json.load(fp)
-	for account_number, indexes in known_accounts.items():
-		if indexes is not None and 'external_leafs' in indexes and 'internal_leafs' in indexes:
-			cached_recovery.add_known_account(account_number, external_leafs=indexes['external_leafs'], internal_leafs=indexes['internal_leafs'])
-		else:
-			cached_recovery.add_known_account(account_number)
+	if args.accounts:
+		__add_known_accounts(cached_recovery, args.accounts)
 
 	# recovery
 	cached_recovery.recover_origin_accounts()
 	cached_recovery.recover_destination_accounts()
 	cached_recovery.create_and_sign_txs()
-	cached_recovery.export_to_batch(args.save)
-
+	print "Total to recover in this branch: %d" % cached_recovery.total_to_recover
+	if cached_recovery.total_to_recover:
+		cached_recovery.export_to_batch(args.save)
 
 def cosign(args):
 	backup_mpk = MasterKey.from_seed_hex(args.seed)

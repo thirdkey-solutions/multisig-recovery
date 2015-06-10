@@ -12,6 +12,7 @@ class Branch(object):
 	def __init__(self, account_key_sources, account_template, provider):
 		self.account = lambda account_index: account_template(account_key_sources, account_index, provider)
 		self.master_key_names = [self.__key_source_string(key_source) for key_source in account_key_sources]
+		self.needs_oracle = bool(sum([isinstance(source, OracleAccountPubkeys) for source in account_key_sources]))
 
 		backup_account_path_template_map = {
 			self.bip32_account: '%d',
@@ -142,7 +143,7 @@ class OracleAccountPubkeys(AccountPubkeys):
 				try:
 					personal_info_dict = self.register['personal_info'][str(account_index)]
 				except KeyError:
-					raise ValueError('Account index %d missing, could not register with CC. File: %s' % (account_index, self.register_accounts_file))
+					raise ValueError('Account index %d missing in %s, could not register with CC' % (account_index, self.register_accounts_file))
 				tmp_oracle.create(self.register['parameters'], PersonalInformation(**personal_info_dict))
 		assert len(tmp_account.keys) == len(account_keys) + 1  # asserting that we fetched a missing key from oracle
 		return tmp_account.keys[-1]  # return the oracle key (last one)
