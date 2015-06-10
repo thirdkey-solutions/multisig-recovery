@@ -107,9 +107,9 @@ class CachedRecovery(object):
 				self.cache.save(Cache.DESTINATION_ACCOUNT, account_index, account)
 
 	def create_and_sign_tx(self, account_index):
-		original_account = self.cache.load(Cache.ORIGINAL_ACCOUNT, account_index)
-		if not original_account:
+		if not self.known_accounts[account_index]:
 			return False
+		original_account = self.cache.load(Cache.ORIGINAL_ACCOUNT, account_index)
 		destination_account = self.cache.load(Cache.DESTINATION_ACCOUNT, account_index)
 		destination_address = destination_account.address(0, False)  # from cache
 		balance = original_account.balance()
