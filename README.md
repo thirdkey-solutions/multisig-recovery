@@ -12,7 +12,7 @@ PROTOTYPE - Branch migrations for multisig wallets
 
     ./recovery cosign \
         --load test.txs \
-        --seed 5e3db9f73124fde2f91484872776f878f5256a87ba72c1f515e7f11d46922d838a2f0c9245d32224f302cd9fb6760fb779bc1efbe681a2ad74be819d5a648b70 \
+        --private 5e3db9f73124fde2f91484872776f878f5256a87ba72c1f515e7f11d46922d838a2f0c9245d32224f302cd9fb6760fb779bc1efbe681a2ad74be819d5a648b70 \
         --save test-signed.txs
 
     ./recovery broadcast \
@@ -33,11 +33,11 @@ PROTOTYPE - Branch migrations for multisig wallets
 	  --accounts FILE       Use list of known account indexes. (create)
 	  --insight URL         Default: http://127.0.0.1:4001/ (create, broadcast)
 	  --template TYPE       Default: bip32 (create)
-	  --seed SEED           Signing hex seed (cosign)
+	  --private KEY         Signing hex seed or xprv (cosign)
 	  --register FILE       New accouts data file for CC API (create)
 
 	./recovery create --origin <KS1,KS2,KS3> --destination <KS1,KS2,KS3> --save <FILE>
-	./recovery cosign --load <FILE> --seed <SEED> --save <FILE>
+	./recovery cosign --load <FILE> --private <xprv|seed> --save <FILE>
 	./recovery broadcast --load <FILE>
 
 	KS(n) above is account key source: master key, a seed, or account keys service. Accepted formats:

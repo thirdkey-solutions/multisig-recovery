@@ -4,6 +4,7 @@ from .branch import Branch, AccountPubkeys
 from .recovery import CachedRecovery
 from .batch import Batch
 import json
+from pycoin.encoding import EncodingError
 
 
 __all__ = ['create', 'cosign', 'broadcast', 'ScriptInputError']
@@ -79,7 +80,10 @@ def create(args):
 		cached_recovery.export_to_batch(args.save)
 
 def cosign(args):
-	backup_mpk = MasterKey.from_seed_hex(args.seed)
+	try:
+		backup_mpk = MasterKey.from_key(args.private)
+	except EncodingError:
+		backup_mpk = MasterKey.from_seed_hex(args.private)
 	batch = Batch.from_file(args.load)
 	batch.validate()  # todo - validation
 	batch.sign(master_private_key=backup_mpk)
