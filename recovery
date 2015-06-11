@@ -39,7 +39,7 @@ def main():
 	parser.add_argument('--destination', metavar='MKs', help='Destination branch keys, comma separated (create)')
 	parser.add_argument('--accounts', metavar='FILE', help='Use list of known account indexes. (create)')
 	parser.add_argument('--insight', metavar='URL', help='Default: http://127.0.0.1:4001/ (create, broadcast)', default='http://127.0.0.1:4001/')
-	parser.add_argument('--template', metavar='TYPE', help='Default: bip32 (create)', default='bip32', choices=['bitoasis_v1', 'bip32', 'bip32_hardened'])
+	parser.add_argument('--template', metavar='TYPE', help='bip32(default)|bip32_hardened|bitoasis_v1 (create)', default='bip32', choices=['bitoasis_v1', 'bip32', 'bip32_hardened'])
 	parser.add_argument('--private', metavar='KEY', help='Signing hex seed or xprv (cosign)')
 	parser.add_argument('--register', metavar='FILE', help='New accouts data file for CC API (create)')
 	parser.epilog = EXAMPLES

@@ -35,7 +35,7 @@ Currently needs https://github.com/bit-oasis/multisig-core/tree/softened version
 	  --destination MKs     Destination branch keys, comma separated (create)
 	  --accounts FILE       Use list of known account indexes. (create)
 	  --insight URL         Default: http://127.0.0.1:4001/ (create, broadcast)
-	  --template TYPE       Default: bip32 (create)
+	  --template TYPE       bip32(default)|bip32_hardened|bitoasis_v1 (create)
 	  --private KEY         Signing hex seed or xprv (cosign)
 	  --register FILE       New accouts data file for CC API (create)
 
