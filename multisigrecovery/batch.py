@@ -89,22 +89,13 @@ class BatchableTx(Tx):
 		batchable_tx = cls.tx_from_hex(data['bytes'])
 		batchable_tx.output_paths = data['output_paths']
 		batchable_tx.input_paths = data['input_paths']
-		batchable_tx.input_txs = [Tx.tx_from_hex(input_tx) for input_tx in data['input_txs']]
-		batchable_tx.scripts = [pay_to.script_obj_from_script(script.decode('hex')) for script in data['scripts']]
 		return batchable_tx
 
 	@classmethod
-	def from_tx(cls, tx, output_paths, scripts, backup_account_path, tx_db, inject_hex=None):
+	def from_tx(cls, tx, output_paths, backup_account_path, inject_hex=None):
 		batchable_tx = cls(tx.version, tx.txs_in, tx.txs_out, tx.lock_time, tx.unspents)
 		batchable_tx.input_paths = [full_leaf_path(backup_account_path, leaf_path) for leaf_path in tx.input_chain_paths()]
 		batchable_tx.output_paths = [full_leaf_path(backup_account_path, leaf_path) for leaf_path in output_paths]
-		batchable_tx.scripts = scripts
-		batchable_tx.input_txs = []
-		for input in tx.txs_in:
-			input_tx = tx_db.get(input.previous_hash)
-			if input_tx is None:
-				raise IOError("could not look up tx for %s" % (b2h(inp.previous_hash)))
-			batchable_tx.input_txs.append(input_tx)
 		if inject_hex is not None:
 			d = batchable_tx.as_dict()
 			d['bytes'] = inject_hex
@@ -118,8 +109,6 @@ class BatchableTx(Tx):
 			'bytes': big,
 			'input_paths': self.input_paths,
 			'output_paths': self.output_paths,
-			'input_txs': [tx.as_hex() for tx in self.input_txs],
-		    'scripts': [script.script().encode('hex') for script in self.scripts],
 		}
 
 	def validate(self):

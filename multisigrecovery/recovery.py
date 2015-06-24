@@ -134,7 +134,7 @@ class CachedRecovery(object):
 			# keys = [account_key.subkey_for_path(tx_in.path) for tx_in in tx.txs_in]
 			keys = ['%x' % origin_account._local_key.subkey_for_path(tx_in.path).secret_exponent() for tx_in in account_tx.txs_in]
 			tx_hex_signed = PyBitcoinTools.cosign(account_tx.as_hex(), keys=keys, redeem_scripts=[script.script() for script in scripts])
-			return BatchableTx.from_tx(account_tx, output_paths=['0/0'], scripts=scripts, backup_account_path=account_path, tx_db=self.tx_db, inject_hex=tx_hex_signed)
+			return BatchableTx.from_tx(account_tx, output_paths=['0/0'], backup_account_path=account_path, inject_hex=tx_hex_signed)
 
 	def create_and_sign_txs(self):
 		"""will pick up where left off due to caching"""
