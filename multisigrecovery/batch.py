@@ -25,9 +25,12 @@ class Batch(object):
 		self.original_master_xpubs = original_master_xpubs
 		self.destination_master_xpubs = destination_master_xpubs
 		self.batchable_txs = batchable_txs
-		self.merkle_root = merkle_root or hash(','.join(sorted([batchable_tx.as_hex() for batchable_tx in batchable_txs])))  # todo - real merkle root
+		self.merkle_root = merkle_root or self._merkle_root()
 		self.total_out = total_out or sum([batchable_tx.total_out() for batchable_tx in batchable_txs])
 		self.checksum = checksum or -1  # todo - checksum
+
+	def _merkle_root(self):  # todo - real merkle root
+		return hash(','.join(sorted([batchable_tx.as_hex() for batchable_tx in self.batchable_txs])))
 
 	def to_file(self, file_path):
 		data = {
@@ -50,10 +53,12 @@ class Batch(object):
 
 	def sign(self, master_private_key):  # todo - test to see if this needs to be cached to FS when signing 100k txs
 		for batchable_tx in self.batchable_txs:
+			original_id = batchable_tx.id()
 			keys = [master_private_key.subkey_for_path(path.strip('/')) for path in batchable_tx.input_paths]
-			#print '[first sign, loaded] %d %s %s' % (batchable_tx.bad_signature_count(), batchable_tx.id(), batchable_tx.as_hex())
 			multisigcore.local_sign(batchable_tx, batchable_tx.scripts, keys)
-			#print '[second sign] %d %s %s' % (batchable_tx.bad_signature_count(), batchable_tx.id(), batchable_tx.as_hex())
+			if batchable_tx.id() == original_id:
+				print '! could not sign tx %s, skipping' % original_id
+		self.merkle_root = self._merkle_root()
 
 	def broadcast(self, provider):  # todo - broadcasting status will need to be cached to FS + checking blockchain until all txs pushed
 		for batchable_tx in self.batchable_txs:

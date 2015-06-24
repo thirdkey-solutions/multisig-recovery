@@ -86,8 +86,12 @@ def cosign(args):
 		backup_mpk = MasterKey.from_seed_hex(args.private)
 	batch = Batch.from_file(args.load)
 	batch.validate()  # todo - validation
+	original_merkle_root = batch.merkle_root
 	batch.sign(master_private_key=backup_mpk)
-	batch.to_file(args.save)
+	if batch.merkle_root != original_merkle_root:
+		batch.to_file(args.save)
+	else:
+		print "! All signatures failed: wrong private key used, or malformed batch"
 
 
 def broadcast(args):
