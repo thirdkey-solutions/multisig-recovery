@@ -46,7 +46,7 @@ class Branch(object):
 			)
 
 		legacy_local_account_key = to_legacy(account_key_sources[0].electrum_account(account_index))
-		legacy_backup_account_key = to_legacy(account_key_sources[1].bip32_account(account_index, hardened=False), is_backup_key=True)
+		legacy_backup_account_key = to_legacy(account_key_sources[1].subkey_for_path('0H/0').bip32_account(account_index, hardened=False), is_backup_key=True)
 		cryptocorp_key = account_key_sources[2].get(account_index, [legacy_local_account_key, legacy_backup_account_key])
 		account_keys = [legacy_local_account_key, legacy_backup_account_key, cryptocorp_key]
 		account = MultisigAccount(account_keys, num_sigs=2, sort=False, complete=True)

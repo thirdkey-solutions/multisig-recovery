@@ -64,9 +64,10 @@ def create(args):
 	__check_source_strings(args)
 
 	# setup
-	account_template = __get_template(args.template)
-	origin_branch = Branch(__parse_key_sources(args.origin), account_template, provider=insight)
-	destination_branch = Branch(__parse_key_sources(args.destination, args.register), account_template, provider=insight)
+	origin_key_sources = __parse_key_sources(args.origin)
+	origin_branch = Branch(origin_key_sources, account_template=__get_template(args.origin_template), provider=insight)
+	destination_key_sources = __parse_key_sources(args.destination, register=args.register)
+	destination_branch = Branch(destination_key_sources, account_template=__get_template(args.destination_template), provider=insight)
 	cached_recovery = CachedRecovery(origin_branch, destination_branch, provider=insight)
 	if args.accounts:
 		__add_known_accounts(cached_recovery, args.accounts)
