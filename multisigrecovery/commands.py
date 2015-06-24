@@ -7,7 +7,7 @@ import json
 from pycoin.encoding import EncodingError
 
 
-__all__ = ['create', 'cosign', 'broadcast', 'ScriptInputError']
+__all__ = ['address', 'create', 'cosign', 'broadcast', 'ScriptInputError']
 
 
 class ScriptInputError(Exception):
@@ -57,6 +57,19 @@ def __add_known_accounts(cached_recovery, known_accounts_file):
 
 
 ############  create, cosign, broadcast methods below  ###########################################
+
+
+def address(args):
+	#insight = __get_insight(args.insight)
+	origin_key_sources = __parse_key_sources(args.origin)
+	origin_branch = Branch(origin_key_sources, account_template=__get_template(args.origin_template), provider=None)
+	path = args.path.split('/')
+	if len(path) != 3 or sum([number.isdigit() for number in path]) != 3:
+		print "! --path must be in format 0/0/0, digits only"
+	else:
+		account = origin_branch.account(int(path[0]))
+		print "Account %s, address %s/%s: %s" % (path[0], path[1], path[2], account.address(path[1], path[2]))
+
 
 
 def create(args):

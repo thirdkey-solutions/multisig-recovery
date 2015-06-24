@@ -7,6 +7,10 @@ from multisigrecovery.commands import ScriptInputError
 
 
 EXAMPLES = """
+Testing:
+./recovery address --origin <KS1,KS2,KS3> --path 0/0/0
+
+Recovery:
 ./recovery create --origin <KS1,KS2,KS3> --destination <KS1,KS2,KS3> --save <FILE>
 ./recovery cosign --load <FILE> --seed <SEED> --save <FILE>
 ./recovery broadcast --load <FILE>
@@ -32,20 +36,22 @@ Sample files:
 
 def main():
 	parser = argparse.ArgumentParser(description='BitOasis multisig branch recovery script', formatter_class=argparse.RawDescriptionHelpFormatter)
-	parser.add_argument('command', choices=['create', 'cosign', 'broadcast'])
+	parser.add_argument('command', choices=['address', 'create', 'cosign', 'broadcast'])
 	parser.add_argument('--load', metavar='FILE', help='Load from batch file (cosign, broadcast)')
 	parser.add_argument('--save', metavar='FILE', help='Save to batch file (create, cosign)')
-	parser.add_argument('--origin', metavar='MKs', help='Original branch keys, comma separated (create)')
+	parser.add_argument('--origin', metavar='MKs', help='Original branch keys, comma separated (create,address)')
 	parser.add_argument('--destination', metavar='MKs', help='Destination branch keys, comma separated (create)')
 	parser.add_argument('--accounts', metavar='FILE', help='Use list of known account indexes. (create)')
 	parser.add_argument('--insight', metavar='URL', help='Default: http://127.0.0.1:4001/ (create, broadcast)', default='http://127.0.0.1:4001/')
-	parser.add_argument('--origin-template', dest='origin_template', metavar='TYPE', help='bip32(default)|bip32_hardened|bitoasis_v1 (create)', default='bip32', choices=['bitoasis_v1', 'bip32', 'bip32_hardened'])
+	parser.add_argument('--origin-template', dest='origin_template', metavar='TYPE', help='bip32(default)|bip32_hardened|bitoasis_v1 (create,address)', default='bip32', choices=['bitoasis_v1', 'bip32', 'bip32_hardened'])
 	parser.add_argument('--destination-template', dest='destination_template', metavar='TYPE', help='bip32(default)|bip32_hardened|bitoasis_v1 (create)', default='bip32', choices=['bitoasis_v1', 'bip32', 'bip32_hardened'])
 	parser.add_argument('--private', metavar='KEY', help='Signing hex seed or xprv (cosign)')
 	parser.add_argument('--register', metavar='FILE', help='New accouts data file for CC API (create)')
+	parser.add_argument('--path', metavar='n/n/n', help='Path to address to show acct/change/n (address)')
 	parser.epilog = EXAMPLES
 	args = parser.parse_args()
 	arguments = {
+		'address': {'load': False, 'origin': True, 'destination': False, 'path': True, 'save': False, 'accounts': False},
 		'create': {'load': False, 'origin': True, 'destination': True, 'private': False, 'save': True},
 	    'cosign': {'load': True, 'origin': False, 'destination': False, 'private': True, 'save': True, 'accounts': False},
 	    'broadcast': {'load': True, 'origin': False, 'destination': False, 'private': False, 'save': False, 'accounts': False},
