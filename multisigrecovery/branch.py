@@ -12,10 +12,10 @@ class Branch(object):
 		self.master_key_names = [self.__key_source_string(key_source) for key_source in account_key_sources]
 		self.needs_oracle = bool(sum([isinstance(source, OracleAccountPubkeys) for source in account_key_sources]))
 
-		backup_account_path_template_map = {
+		backup_account_path_template_map = {  # todo - this might become obsolete
 			self.bip32_account: '%d',
 			self.bip32_hardened_account: '%d',  # backup (3rd party) key is not hardened even when local key is hardened
-			self.bitoasis_v1_account: '0H/0/%d',
+			self.bitoasis_v1_account: '%d',
 		}
 		self.backup_account_path_template = backup_account_path_template_map[account_template]
 
@@ -46,7 +46,7 @@ class Branch(object):
 			)
 
 		legacy_local_account_key = to_legacy(account_key_sources[0].electrum_account(account_index))
-		legacy_backup_account_key = to_legacy(account_key_sources[1].subkey_for_path('0H/0').bip32_account(account_index, hardened=False), is_backup_key=True)
+		legacy_backup_account_key = to_legacy(account_key_sources[1].bip32_account(account_index, hardened=False), is_backup_key=True)
 		cryptocorp_key = account_key_sources[2].get(account_index, [legacy_local_account_key, legacy_backup_account_key])
 		account_keys = [legacy_local_account_key, legacy_backup_account_key, cryptocorp_key]
 		account = MultisigAccount(account_keys, num_sigs=2, sort=False, complete=True)
