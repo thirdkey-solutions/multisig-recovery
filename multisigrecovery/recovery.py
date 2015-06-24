@@ -1,8 +1,10 @@
-from batch import Batch, BatchableTx
+from batch import Batch, BatchableTx, Tx
 from cache import Cache
-from multisigcore.hierarchy import TX_FEE_PER_THOUSAND_BYTES, InsufficientBalanceException, MasterKey
+from multisigcore.hierarchy import TX_FEE_PER_THOUSAND_BYTES, InsufficientBalanceException, MasterKey, AccountTx
 from multisigcore.oracle import OracleUnknownKeychainException
 from pycoin.services.tx_db import TxDb
+
+from . import PyBitcoinTools
 
 
 class CachedRecovery(object):
@@ -109,30 +111,30 @@ class CachedRecovery(object):
 	def create_and_sign_tx(self, account_index):
 		if not self.known_accounts[account_index]:
 			return False
-		original_account = self.cache.load(Cache.ORIGINAL_ACCOUNT, account_index)
+		origin_account = self.cache.load(Cache.ORIGINAL_ACCOUNT, account_index)
 		destination_account = self.cache.load(Cache.DESTINATION_ACCOUNT, account_index)
 		destination_address = destination_account.address(0, False)  # from cache
-		balance = original_account.balance()
+		balance = origin_account.balance()
 		balance_less_fee = balance - TX_FEE_PER_THOUSAND_BYTES
-		tx = None
+		account_tx = None
 		while balance_less_fee > 0:
 			try:  # todo - a function in multisigcore to withdraw all funds less fee
-				tx = original_account.tx([(destination_address, balance_less_fee)])
+				account_tx = origin_account.tx([(destination_address, balance_less_fee)])
 				self.total_to_recover += balance_less_fee
-				print "account", account_index, "balance:", balance, ", fee:", balance - balance_less_fee, ", recovering:", balance_less_fee, "in", tx.id()
+				print "account", account_index, "balance:", balance, ", fee:", balance - balance_less_fee, ", recovering:", balance_less_fee, "in", account_tx.id()
 				break
 			except InsufficientBalanceException, err:
 				balance_less_fee -= TX_FEE_PER_THOUSAND_BYTES
 		else:
 			print "account", account_index, "balance:", balance, ",nothing to send"
 
-		if tx is not None:
+		if account_tx is not None:
 			account_path = self.origin_branch.backup_account_path_template % account_index
-			scripts = [original_account.script_for_path(tx_in.path) for tx_in in tx.txs_in]
-			batchable_tx = BatchableTx.from_tx(tx, output_paths=['0/0'], scripts=scripts, backup_account_path=account_path, tx_db=self.tx_db)
-			original_account.sign(batchable_tx)
-			#print '[first sign, saving] %d %s %s' % (batchable_tx.bad_signature_count(), batchable_tx.id(), batchable_tx.as_hex())
-			return batchable_tx
+			scripts = [origin_account.script_for_path(tx_in.path) for tx_in in account_tx.txs_in]
+			# keys = [account_key.subkey_for_path(tx_in.path) for tx_in in tx.txs_in]
+			keys = ['%x' % origin_account._local_key.subkey_for_path(tx_in.path).secret_exponent() for tx_in in account_tx.txs_in]
+			tx_hex_signed = PyBitcoinTools.cosign(account_tx.as_hex(), keys=keys, redeem_scripts=[script.script() for script in scripts])
+			return BatchableTx.from_tx(account_tx, output_paths=['0/0'], scripts=scripts, backup_account_path=account_path, tx_db=self.tx_db, inject_hex=tx_hex_signed)
 
 	def create_and_sign_txs(self):
 		"""will pick up where left off due to caching"""

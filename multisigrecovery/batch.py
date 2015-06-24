@@ -3,6 +3,8 @@ import json
 import multisigcore
 import multisigcore.oracle
 import sys
+from . import PyBitcoinTools
+
 
 def full_leaf_path(account_path, leaf_path):
 	return '/%s/%s' % (account_path.strip('/'), leaf_path.strip('/'))
@@ -52,24 +54,24 @@ class Batch(object):
 		print '! validation not implemented'
 
 	def sign(self, master_private_key):  # todo - test to see if this needs to be cached to FS when signing 100k txs
-		for batchable_tx in self.batchable_txs:
-			original_id = batchable_tx.id()
-			keys = [master_private_key.subkey_for_path(path.strip('/')) for path in batchable_tx.input_paths]
-			multisigcore.local_sign(batchable_tx, batchable_tx.scripts, keys)
-			if batchable_tx.id() == original_id:
-				print '! could not sign tx %s, skipping' % original_id
+		for tx_i, batchable_tx in enumerate(self.batchable_txs):
+			keys = ['%x' % master_private_key.subkey_for_path(path.strip('/')).secret_exponent() for path in batchable_tx.input_paths]
+			d = batchable_tx.as_dict()
+			try:
+				d['bytes'] = PyBitcoinTools.cosign(d['bytes'], keys=keys)
+				self.batchable_txs[tx_i] = BatchableTx.from_dict(d)
+				print 'signed %s' % self.batchable_txs[tx_i].id()
+			except ValueError:
+				print '! could not sign tx %s, skipping' % self.batchable_txs[tx_i].id()
 		self.merkle_root = self._merkle_root()
 
 	def broadcast(self, provider):  # todo - broadcasting status will need to be cached to FS + checking blockchain until all txs pushed
 		for batchable_tx in self.batchable_txs:
 			try:
-				for i, tx_in in enumerate(batchable_tx.txs_in):
-					multisigcore.oracle.fix_input_script(tx_in, batchable_tx.scripts[i].script())
-				#print '[after fix] %d %s %s' % (batchable_tx.bad_signature_count(), batchable_tx.id(), batchable_tx.as_hex())
 				provider.send_tx(batchable_tx)
 				print 'broadcasted %s %s' % (batchable_tx.id(), batchable_tx.as_hex())
 			except Exception, err:
-				sys.stderr.write("tx %s failed to propagate (%s)\n" %(batchable_tx.id(), str(err)))
+				sys.stderr.write("! tx %s failed to propagate [%s] (%s)\n" %(batchable_tx.id(), batchable_tx.as_hex(), str(err)))
 
 	def __repr__(self):
 		return "Batch(%s)" % str(self.merkle_root)
@@ -92,7 +94,7 @@ class BatchableTx(Tx):
 		return batchable_tx
 
 	@classmethod
-	def from_tx(cls, tx, output_paths, scripts, backup_account_path, tx_db):
+	def from_tx(cls, tx, output_paths, scripts, backup_account_path, tx_db, inject_hex=None):
 		batchable_tx = cls(tx.version, tx.txs_in, tx.txs_out, tx.lock_time, tx.unspents)
 		batchable_tx.input_paths = [full_leaf_path(backup_account_path, leaf_path) for leaf_path in tx.input_chain_paths()]
 		batchable_tx.output_paths = [full_leaf_path(backup_account_path, leaf_path) for leaf_path in output_paths]
@@ -103,6 +105,10 @@ class BatchableTx(Tx):
 			if input_tx is None:
 				raise IOError("could not look up tx for %s" % (b2h(inp.previous_hash)))
 			batchable_tx.input_txs.append(input_tx)
+		if inject_hex is not None:
+			d = batchable_tx.as_dict()
+			d['bytes'] = inject_hex
+			batchable_tx = cls.from_dict(d)
 		return batchable_tx
 
 	def as_dict(self):
