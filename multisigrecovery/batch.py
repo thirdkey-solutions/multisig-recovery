@@ -55,7 +55,7 @@ class Batch(object):
 
 	def sign(self, master_private_key):  # todo - test to see if this needs to be cached to FS when signing 100k txs
 		for tx_i, batchable_tx in enumerate(self.batchable_txs):
-			keys = ['%x' % master_private_key.subkey_for_path(path.strip('/')).secret_exponent() for path in batchable_tx.input_paths]
+			keys = ['%064x' % master_private_key.subkey_for_path(path.strip('/')).secret_exponent() for path in batchable_tx.input_paths]
 			d = batchable_tx.as_dict()
 			try:
 				d['bytes'] = PyBitcoinTools.cosign(d['bytes'], keys=keys)
