@@ -60,6 +60,7 @@ def __add_known_accounts(cached_recovery, known_accounts_file):
 
 
 def address(args):
+	"""Will return address of specified path in a branch. Used to manyally cross-check that you are working on correct branch."""
 	#insight = __get_insight(args.insight)
 	origin_key_sources = __parse_key_sources(args.origin)
 	origin_branch = Branch(origin_key_sources, account_template=__get_template(args.origin_template), provider=None)
@@ -67,8 +68,9 @@ def address(args):
 	if len(path) != 3 or sum([number.isdigit() for number in path]) != 3:
 		print "! --path must be in format 0/0/0, digits only"
 	else:
+		path = [int(digit) for digit in path]
 		account = origin_branch.account(int(path[0]))
-		print "Account %s, address %s/%s: %s" % (path[0], path[1], path[2], account.address(path[1], path[2]))
+		print "Account %s, address %s/%s: %s" % (path[0], path[1], path[2], account.address(path[2], change=bool(path[1])))
 
 
 
