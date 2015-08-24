@@ -1,51 +1,24 @@
 
-try:
-	import pybitcointools
-except ImportError:
-	import bitcoin as pybitcointools
-
-from pycoin.key.Key import Key
+from multisigcore import LazySecretExponentDBWithNetwork
+from pycoin.tx.pay_to import build_p2sh_lookup
+from pycoin.serialize import h2b
+from pycoin.tx.script.tools import opcode_list
 
 
-class PyBitcoinTools():
-
-	@staticmethod
-	def _order_script_signatures(tx, i, serialized_script):
-		if not serialized_script:
-			raise ValueError('Input %d is missing a redeem script' % i)
-		script = pybitcointools.deserialize_script(serialized_script)
-		original_script = pybitcointools.deserialize_script(script[-1])
-		if len(script) - 2 != original_script[0]:  # Signing not complete. fixme - this is a blind guess.
-			return serialized_script
-		ordered_signatures = []
-		for pubkey in original_script[1:-2]:
-			uncompressed_pubkey = Key.from_sec(pubkey.decode('hex')).sec_as_hex(use_uncompressed=True)
-			for signature in script[1:-1]:
-				if pybitcointools.verify_tx_input(tx, i, script[-1], signature, uncompressed_pubkey):
-					ordered_signatures.append(signature)
-					break
-		if len(ordered_signatures) != original_script[0]:
-			raise ValueError('Tx signing failed')
-		return pybitcointools.serialize_script([script[0]] + ordered_signatures + [script[-1]])
-
-	@classmethod
-	def _order_tx_signatures(cls, tx):
-		deserialized_tx = pybitcointools.deserialize(tx)
-		for i, input in enumerate(deserialized_tx['ins']):
-			input['script'] = cls._order_script_signatures(tx, i, input['script'])
-		return pybitcointools.serialize(deserialized_tx)
-
-	@classmethod
-	def cosign(cls, tx, keys, redeem_scripts=None):
-		tx = bytes(tx)
-		deserialized_tx = pybitcointools.deserialize(tx)
-		assert len(keys) == len(deserialized_tx['ins']) and (redeem_scripts is None or len(redeem_scripts) == len(keys))
-		for i, key in enumerate(keys):
-			script = deserialized_tx['ins'][i]['script']
-			signatures = pybitcointools.deserialize_script(script)[1:-1] if script else []
-			redeem_script = redeem_scripts[i] if redeem_scripts is not None else pybitcointools.deserialize_script(script)[-1]
-			signatures.insert(0, pybitcointools.multisign(tx, i, redeem_script, key))
-			signed_tx = pybitcointools.apply_multisignatures(tx, i, redeem_script, signatures)
-			serialized_script = pybitcointools.deserialize(signed_tx)['ins'][i]['script']
-			deserialized_tx['ins'][i]['script'] = cls._order_script_signatures(tx, i, serialized_script)
-		return pybitcointools.serialize(deserialized_tx)
+def cosign(tx, keys, redeem_scripts=None):
+	"""
+	Utility for locally signing a multisig transaction.
+	:param tx: Transaction to sign.
+	:param redeem_scripts: Required when adding first signature only.
+	:param keys: one key per transaction input
+	:return:
+	"""
+	if not keys:  # Nothing to do
+	    return
+	if redeem_scripts:  # scripts supplied as a param
+		raw_scripts = [script.script() for script in redeem_scripts]
+	else:  # parsing scripts from tx
+		raw_scripts = [h2b(opcode_list(script)[-1]) for script in [tx_in.script for tx_in in tx.txs_in] if script]
+	lookup = build_p2sh_lookup(raw_scripts) if raw_scripts else None
+	db = LazySecretExponentDBWithNetwork(keys[0]._netcode, [key.wif() for key in keys], {})
+	tx.sign(db, p2sh_lookup=lookup)

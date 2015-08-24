@@ -1,24 +1,23 @@
 
 PROTOTYPE - Branch migrations for multisig wallets
 
-Currently needs https://github.com/bit-oasis/multisig-core/tree/softened version of `multisig-core`
 
  
 ```bash
 
-	./recovery -h
+	python ./recovery -h
 
-    ./recovery create \
+    python ./recovery create \
         --origin 54b426b3e676649e8bfd66a2943f56fe74da2d2c0934d78db3a87dae44ed8d159e29ea93f6f33550a767c228786e75d020753575733bcf336943f7fa4ecfdaaa,xpub69mdgvyDG2wbxwFTDhb6ghQ5Dgsdk1zGhxHPAq3C76XBbZCa4UJZZj3Ew7hLGCGvuxy4hseoWbj9KNoHzN1jZUovLMKP3rHThyWHZxKu5cA \
         --destination cccc26b3e676649e8bfd66a2943f56fe74da2d2c0934d78db3a87dae44ed8d159e29ea93f6f33550a767c228786e75d020753575733bcf336943f7fa4ecfbbbb,xpub69mdgvyDG2wbxwFTDhb6ghQ5Dgsdk1zGhxHPAq3C76XBbZCa4UJZZj3Ew7hLGCGvuxy4hseoWbj9KNoHzN1jZUovLMKP3rHThyWHZxKu5cA \
         --save test.txs
 
-    ./recovery cosign \
+    python ./recovery cosign \
         --load test.txs \
         --private 5e3db9f73124fde2f91484872776f878f5256a87ba72c1f515e7f11d46922d838a2f0c9245d32224f302cd9fb6760fb779bc1efbe681a2ad74be819d5a648b70 \
         --save test-signed.txs
 
-    ./recovery broadcast \
+    python ./recovery broadcast \
         --load test-signed.txs
 ```
 

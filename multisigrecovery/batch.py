@@ -3,7 +3,7 @@ import json
 import multisigcore
 import multisigcore.oracle
 import sys
-from . import PyBitcoinTools
+from . import cosign
 
 
 def full_leaf_path(account_path, leaf_path):
@@ -55,14 +55,11 @@ class Batch(object):
 
 	def sign(self, master_private_key):  # todo - test to see if this needs to be cached to FS when signing 100k txs
 		for tx_i, batchable_tx in enumerate(self.batchable_txs):
-			keys = ['%064x' % master_private_key.subkey_for_path(path.strip('/')).secret_exponent() for path in batchable_tx.input_paths]
-			d = batchable_tx.as_dict()
 			try:
-				d['bytes'] = PyBitcoinTools.cosign(d['bytes'], keys=keys)
-				self.batchable_txs[tx_i] = BatchableTx.from_dict(d)
-				print 'signed %s' % self.batchable_txs[tx_i].id()
-			except ValueError:
-				print '! could not sign tx %s, skipping' % self.batchable_txs[tx_i].id()
+				cosign(batchable_tx, keys=[master_private_key.subkey_for_path(path.strip('/')) for path in batchable_tx.input_paths])
+				print 'signed: %s' % batchable_tx.id()
+			except Exception as err:
+				print '! could not sign tx %s, skipping' % batchable_tx.id(), err
 		self.merkle_root = self._merkle_root()
 
 	def broadcast(self, provider):  # todo - broadcasting status will need to be cached to FS + checking blockchain until all txs pushed
@@ -92,14 +89,10 @@ class BatchableTx(Tx):
 		return batchable_tx
 
 	@classmethod
-	def from_tx(cls, tx, output_paths, backup_account_path, inject_hex=None):
+	def from_tx(cls, tx, output_paths, backup_account_path):
 		batchable_tx = cls(tx.version, tx.txs_in, tx.txs_out, tx.lock_time, tx.unspents)
 		batchable_tx.input_paths = [full_leaf_path(backup_account_path, leaf_path) for leaf_path in tx.input_chain_paths()]
 		batchable_tx.output_paths = [full_leaf_path(backup_account_path, leaf_path) for leaf_path in output_paths]
-		if inject_hex is not None:
-			d = batchable_tx.as_dict()
-			d['bytes'] = inject_hex
-			batchable_tx = cls.from_dict(d)
 		return batchable_tx
 
 	def as_dict(self):

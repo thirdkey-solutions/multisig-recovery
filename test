@@ -5,14 +5,14 @@ import sys
 # import multisigrecovery.commands
 # from multisigrecovery.commands import ScriptInputError
 from tests.test_cycle import test_cycle
-from tests.test_signing import test_signing
+# from tests.test_signing import test_signing
 
 INSIGHT_LOCALHOST_URL = 'http://127.0.0.1:4001/'
 
 
 def main():
 	parser = argparse.ArgumentParser(description='BitOasis multisig branch recovery script', formatter_class=argparse.RawDescriptionHelpFormatter)
-	parser.add_argument('command', choices=['cycle', 'signing'])
+	parser.add_argument('command', choices=['cycle'])
 	parser.add_argument('--insight', metavar='URL', help='Default: http://127.0.0.1:4001/ (create, broadcast)', default=INSIGHT_LOCALHOST_URL)
 	args = parser.parse_args()
 
@@ -22,8 +22,8 @@ def main():
 	if args.command == 'cycle':
 		test_cycle(args.insight)
 
-	elif args.command == 'signing':
-		test_signing(args.insight)
+	# elif args.command == 'signing':
+	# 	test_signing(args.insight)
 
 
 if __name__ == '__main__':

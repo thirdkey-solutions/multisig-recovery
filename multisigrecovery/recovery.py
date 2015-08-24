@@ -4,8 +4,6 @@ from multisigcore.hierarchy import TX_FEE_PER_THOUSAND_BYTES, InsufficientBalanc
 from multisigcore.oracle import OracleUnknownKeychainException
 from pycoin.services.tx_db import TxDb
 
-from . import PyBitcoinTools
-
 
 class CachedRecovery(object):
 	"""
@@ -130,11 +128,8 @@ class CachedRecovery(object):
 
 		if account_tx is not None:
 			account_path = self.origin_branch.backup_account_path_template % account_index
-			scripts = [origin_account.script_for_path(tx_in.path) for tx_in in account_tx.txs_in]
-			# keys = [account_key.subkey_for_path(tx_in.path) for tx_in in tx.txs_in]
-			keys = ['%x' % origin_account._local_key.subkey_for_path(tx_in.path).secret_exponent() for tx_in in account_tx.txs_in]
-			tx_hex_signed = PyBitcoinTools.cosign(account_tx.as_hex(), keys=keys, redeem_scripts=[script.script() for script in scripts])
-			return BatchableTx.from_tx(account_tx, output_paths=['0/0'], backup_account_path=account_path, inject_hex=tx_hex_signed)
+			origin_account.sign(account_tx)
+			return BatchableTx.from_tx(account_tx, output_paths=['0/0'], backup_account_path=account_path)
 
 	def create_and_sign_txs(self):
 		"""will pick up where left off due to caching"""

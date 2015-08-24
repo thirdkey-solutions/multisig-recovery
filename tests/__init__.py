@@ -40,3 +40,7 @@ def get_test_master_xpub_keys():
 
 def get_test_master_xpub_strings():
 	return xpub_strings
+
+
+def to_bip32_accounts(keys, i, hardened=False):
+	return [key.bip32_account(i, hardened=hardened) for key in keys]
