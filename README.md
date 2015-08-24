@@ -1,10 +1,10 @@
 
 PROTOTYPE - Branch migrations for multisig wallets
 
-Install libraries from here (for recovery scripts to work properly):
-https://github.com/tomholub/pycoin (proper p2sh fixes)
-https://github.com/devrandom/multisig-core (p2sh duct-taping disabled)
 
+Install libraries from here (for recovery scripts to work properly): 
+ - https://github.com/tomholub/pycoin (proper p2sh fixes)
+ - https://github.com/devrandom/multisig-core (p2sh duct-taping disabled)
 
  
 ```bash
