@@ -46,7 +46,11 @@ class Batch(object):
 			print "save %s" % file_path
 			json.dump(data, fp)
 
-	def validate(self):
+	def validate(self, provider=None):
+		if provider is not None:
+			print "Doing full, online validation."
+		else:
+			print "Doing limited, offline validation."
 		if False:  # todo - validate header
 			raise ValueError('%s did not pass validation', repr(self))
 		for batchable_tx in self.batchable_txs:
@@ -105,5 +109,8 @@ class BatchableTx(Tx):
 		}
 
 	def validate(self):
+		# verify output chain paths against master xpubs
+		# input txs to be valid and
+		# match hashes in tx[bytes]
 		if False:  # todo - validate tx
 			raise ValueError('%s did not pass validation' % repr(self))
