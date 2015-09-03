@@ -12,6 +12,7 @@ Testing:
 
 Recovery:
 ./recovery create --origin <KS1,KS2,KS3> --destination <KS1,KS2,KS3> --save <FILE>
+./recovery validate --load <FILE>
 ./recovery cosign --load <FILE> --seed <SEED> --save <FILE>
 ./recovery broadcast --load <FILE>
 
@@ -36,7 +37,7 @@ Sample files:
 
 def main():
 	parser = argparse.ArgumentParser(description='BitOasis multisig branch recovery script', formatter_class=argparse.RawDescriptionHelpFormatter)
-	parser.add_argument('command', choices=['address', 'create', 'cosign', 'broadcast'])
+	parser.add_argument('command', choices=['address', 'create', 'validate', 'cosign', 'broadcast'])
 	parser.add_argument('--load', metavar='FILE', help='Load from batch file (cosign, broadcast)')
 	parser.add_argument('--save', metavar='FILE', help='Save to batch file (create, cosign)')
 	parser.add_argument('--origin', metavar='MKs', help='Original branch keys, comma separated (create,address)')
@@ -51,8 +52,10 @@ def main():
 	parser.epilog = EXAMPLES
 	args = parser.parse_args()
 	arguments = {
+		# False: cannot use this arg, True: must use this arg, ommit: voluntary arg
 		'address': {'load': False, 'origin': True, 'destination': False, 'path': True, 'save': False, 'accounts': False},
 		'create': {'load': False, 'origin': True, 'destination': True, 'private': False, 'save': True},
+		'validate': {'load': True, 'origin': False, 'destination': False, 'private': False, 'save': False, 'accounts': False},
 	    'cosign': {'load': True, 'origin': False, 'destination': False, 'private': True, 'save': True, 'accounts': False},
 	    'broadcast': {'load': True, 'origin': False, 'destination': False, 'private': False, 'save': False, 'accounts': False},
 	}

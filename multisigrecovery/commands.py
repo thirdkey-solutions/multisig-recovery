@@ -5,10 +5,13 @@ from .recovery import CachedRecovery
 from .batch import Batch
 import json
 from pycoin.encoding import EncodingError
+try:
+	from termcolor import colored
+except ImportError:
+	def colored(text, color=None): print text
 
 
-__all__ = ['address', 'create', 'cosign', 'broadcast', 'ScriptInputError']
-
+__all__ = ['address', 'create', 'validate', 'cosign', 'broadcast', 'ScriptInputError']
 
 class ScriptInputError(Exception):
 	pass
@@ -94,6 +97,33 @@ def create(args):
 	print "Total to recover in this branch: %d" % cached_recovery.total_to_recover
 	if cached_recovery.total_to_recover:
 		cached_recovery.export_to_batch(args.save)
+
+def validate(args):
+	try:
+		insight = __get_insight(args.insight)
+	except ScriptInputError:
+		raw_input("Insight node at " + args.insight + " not reachable. You can start this script again with --insight SOME_URL. Hit ENTER to continue with offline validation, or CTRL+Z to exit...")
+		insight = None
+	print ""
+
+	try:
+		batch = Batch.from_file(args.load)
+		batch.validate(provider=insight)
+		error = None
+	except ValueError as err:
+		print "Validation failed"
+		error = err
+
+	print "   ____"
+	print "  |"
+	print "  |  Valid           : ", colored("False, with error: " + str(error), 'red') if error else colored('True', 'green')
+	print "  |  Checksum        : ", batch.checksum
+	print "  |  Merkle root     : ", batch.merkle_root
+	print "  |  Total out       : ", batch.total_out
+	print "  |  Transactions    : ", len(batch.batchable_txs)
+	print "  |____"
+	print ""
+
 
 def cosign(args):
 	try:
