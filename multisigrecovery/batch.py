@@ -1,10 +1,14 @@
 from pycoin.tx import Tx, pay_to, Spendable
+from pycoin.serialize import b2h, b2h_rev, h2b, h2b_rev
+from pycoin.merkle import merkle
+from pycoin.encoding import double_sha256
+
+
 import json
 import multisigcore
 import multisigcore.oracle
 import sys
 from . import cosign
-
 
 def full_leaf_path(account_path, leaf_path):
 	return '/%s/%s' % (account_path.strip('/'), leaf_path.strip('/'))
@@ -31,8 +35,13 @@ class Batch(object):
 		self.total_out = total_out or sum([batchable_tx.total_out() for batchable_tx in batchable_txs])
 		self.checksum = checksum or -1  # todo - checksum
 
-	def _merkle_root(self):  # todo - real merkle root
-		return hash(','.join(sorted([batchable_tx.as_hex() for batchable_tx in self.batchable_txs])))
+	def _merkle_root(self):
+		# shouldn't get called without transactions
+		if not len(self.batchable_txs):
+			return None
+		else:
+			return b2h_rev(merkle(sorted([tx.hash() for tx in self.batchable_txs]), double_sha256))
+
 
 	def to_file(self, file_path):
 		data = {
