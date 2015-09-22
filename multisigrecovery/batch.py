@@ -33,11 +33,11 @@ class Batch(object):
 		self.original_master_xpubs = original_master_xpubs
 		self.destination_master_xpubs = destination_master_xpubs
 		self.batchable_txs = batchable_txs
-		self.merkle_root = merkle_root or self._merkle_root()
+		self.merkle_root = merkle_root
 		self.total_out = total_out or sum([batchable_tx.total_out() for batchable_tx in batchable_txs])
 		self.checksum = checksum or -1  # todo - checksum
 
-	def _merkle_root(self):
+	def build_merkle_root(self):
 		# shouldn't get called without transactions
 		if not len(self.batchable_txs):
 			return None
@@ -58,8 +58,8 @@ class Batch(object):
 			json.dump(data, fp)
 
 	def validate(self, provider=None):
-		if False:  # todo - validate header
-			raise ValueError('%s did not pass validation', repr(self))
+		if self.merkle_root != self.build_merkle_root():
+			raise ValueError("calculated merkle_root %s does not match stated merkle_root %s from header" % (self.build_merkle_root(), self.merkle_root))
 
 		self.total_out = 0
 		if provider is not None:
@@ -99,7 +99,6 @@ class Batch(object):
 				print 'signed: %s' % batchable_tx.id()
 			except Exception as err:
 				print '! could not sign tx %s, skipping' % batchable_tx.id(), err
-		self.merkle_root = self._merkle_root()
 
 	def broadcast(self, provider):  # todo - broadcasting status will need to be cached to FS + checking blockchain until all txs pushed
 		for batchable_tx in self.batchable_txs:
