@@ -86,6 +86,7 @@ class Batch(object):
 				print "- Fee", tx.fee()
 				self.total_fee += tx.fee()
 
+				print "- Transaction Size", len(tx.as_hex())
 				print "- Recommended Fee for Size ", tx_fee.recommended_fee_for_tx(tx)
 				if tx.fee() > 100000 and tx.fee() > 2 * tx_fee.recommended_fee_for_tx(tx):
 					raise ValueError("Very high fee in transaction %s" % tx.id())
