@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name='multisig-recovery',
-    version = '0.1',
+    version = '0.2-workingsigs',
     packages=[
         'multisigrecovery',
         'tests'
