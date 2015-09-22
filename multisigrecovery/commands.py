@@ -111,16 +111,19 @@ def validate(args):
 		batch.validate(provider=insight)
 		error = None
 	except ValueError as err:
-		print "Validation failed"
+		print "Validation failed", err
 		error = err
 
 	print "   ____"
 	print "  |"
-	print "  |  Valid           : ", colored("False, with error: " + str(error), 'red') if error else colored('True', 'green')
-	print "  |  Checksum        : ", batch.checksum
-	print "  |  Merkle root     : ", batch.merkle_root
-	print "  |  Total out       : ", batch.total_out
+	print "  |  Valid           : ", "False, with error: " + str(error) if error else 'True'
 	print "  |  Transactions    : ", len(batch.batchable_txs)
+	print "  |  Merkle root     : ", batch._merkle_root()
+	print "  |  Total out       : ", batch.total_out, "satoshi", "-",batch.total_out/(100.0 * 10**6), "BTC"
+	if insight:
+			print "  |  Total in        : ", batch.total_in, "satoshi", "-",batch.total_in/(100.0 * 10**6), "BTC"
+			print "  |  Total fee       : ", batch.total_fee, "satoshi", "-",batch.total_fee/(100.0 * 10**6), "BTC"
+			print "  |  Fee Percent     : ", batch.total_fee * 100.00 / batch.total_out
 	print "  |____"
 	print ""
 
